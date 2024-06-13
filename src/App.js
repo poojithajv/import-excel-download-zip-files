@@ -89,20 +89,43 @@ function App() {
     // Iterate through each URL and trigger downloads
     try {
       const filteredData = jsonData.map((item) => item['External URL']);
-      console.log(filteredData);
       // Iterate through each URL and trigger downloads with a delay
       for (const url of filteredData) {
-        try {
-          const link = document.createElement('a');
-          link.href = url;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          console.log("Downloaded:", url);
-        } catch (error) {
-          console.error("Error downloading:", url, error);
+        let attempts = 0;
+        let maxAttempts = 5;
+        let success = false;
+    
+        while (attempts < maxAttempts && !success) {
+          try {
+            console.log(`Attempting to download: ${url}, Attempt: ${attempts + 1}`);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = '';
+            document.body.appendChild(link);
+            
+            link.click();
+    
+            document.body.removeChild(link);
+            console.log("Downloaded:", url);
+            
+            success = true; // If we reach here, the download was initiated successfully
+          } catch (error) {
+            attempts++;
+            console.error(`Error downloading ${url} on attempt ${attempts}:`, error);
+    
+            if (attempts >= maxAttempts) {
+              console.error(`Failed to download ${url} after ${maxAttempts} attempts.`);
+            } else {
+              console.log(`Retrying download for ${url}...`);
+            }
+          }
+    
+          // Introduce a delay of 2000 milliseconds between each download attempt
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
-        // Introduce a delay of 500 milliseconds between each download
+    
+        // Delay before moving to the next file to avoid overlapping requests
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
       setLoading(false)
