@@ -86,57 +86,70 @@ function App() {
   };
 
   const handleDownloadFiles = async (jsonData) => {
-    // Iterate through each URL and trigger downloads
     try {
       const filteredData = jsonData.map((item) => item['External URL']);
-      // Iterate through each URL and trigger downloads with a delay
-      for (const url of filteredData) {
-        let attempts = 0;
-        let maxAttempts = 5;
-        let success = false;
-    
-        while (attempts < maxAttempts && !success) {
+      console.log(filteredData);
+  
+      // Function to download a single file
+      const downloadFile = (url) => {
+        return new Promise((resolve, reject) => {
           try {
-            console.log(`Attempting to download: ${url}, Attempt: ${attempts + 1}`);
-            
             const link = document.createElement('a');
             link.href = url;
-            link.download = '';
+            link.download = ''; // Ensure the download prompt is shown
+            link.style.display = 'none'; // Hide the link
+  
             document.body.appendChild(link);
+  
+            // Create a click event and dispatch it
+            const clickEvent = new MouseEvent('click', {
+              view: window,
+              bubbles: true,
+              cancelable: true,
+            });
+  
+            // Attach an event listener to ensure the link is processed
+            link.addEventListener('click', () => {
+              setTimeout(() => {
+                resolve(); // Resolve the promise after some delay
+              }, 40000); // 10 seconds delay to accommodate larger files
+            });
+  
+            // Dispatch the click event
+            link.dispatchEvent(clickEvent);
+  
+            // Remove the link from the document after a delay to allow the download to initiate
+            setTimeout(() => {
+              document.body.removeChild(link);
+              console.log("Processed download:", url);
+            }, 12000); // 12 seconds delay to ensure the download has started
             
-            link.click();
-    
-            document.body.removeChild(link);
-            console.log("Downloaded:", url);
-            
-            success = true; // If we reach here, the download was initiated successfully
+            console.log("Initiated download:", url);
           } catch (error) {
-            attempts++;
-            console.error(`Error downloading ${url} on attempt ${attempts}:`, error);
-    
-            if (attempts >= maxAttempts) {
-              console.error(`Failed to download ${url} after ${maxAttempts} attempts.`);
-            } else {
-              console.log(`Retrying download for ${url}...`);
-            }
+            console.error("Error downloading:", url, error);
+            reject(error);
           }
-    
-          // Introduce a delay of 2000 milliseconds between each download attempt
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-    
-        // Delay before moving to the next file to avoid overlapping requests
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        });
+      };
+  
+      // Download each file one after another
+      for (const url of filteredData) {
+        await downloadFile(url);
+        // Introduce a longer delay between each download to ensure stability
+        await new Promise(resolve => setTimeout(resolve, 5000)); // 5 seconds delay between downloads
       }
-      setLoading(false)
+  
+      setLoading(false);
       document.querySelector('.upload-input').value = ''; // Reset the file input value
       setExcelFile(null);
     } catch (error) {
-      setLoading(false)
+      setLoading(false);
       console.error(error);
-      toast.error('Internal Server Error')
+      toast.error('Internal Server Error');
     }
-  }
+  };
+  
+  
   return (
     <div className="App">
         <form style={{ fontSize: "20px" }} autoComplete="off" onSubmit={handleSubmit} >
