@@ -91,47 +91,35 @@ function App() {
       console.log(filteredData);
   
       // Function to download a single file
-      const downloadFile = (url) => {
-        return new Promise((resolve, reject) => {
-          try {
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = ''; // Ensure the download prompt is shown
-            link.style.display = 'none'; // Hide the link
+     const downloadFile = async (url) => {
+      try {
+        // Remove query parameters if they exist
+        const cleanUrl = url.split('?')[0];
+        console.log(cleanUrl)
   
-            document.body.appendChild(link);
-  
-            // Create a click event and dispatch it
-            const clickEvent = new MouseEvent('click', {
-              view: window,
-              bubbles: true,
-              cancelable: true,
-            });
-  
-            // Attach an event listener to ensure the link is processed
-            link.addEventListener('click', () => {
-              setTimeout(() => {
-                resolve(); // Resolve the promise after some delay
-              }, 40000); // 10 seconds delay to accommodate larger files
-            });
-  
-            // Dispatch the click event
-            link.dispatchEvent(clickEvent);
-  
-            // Remove the link from the document after a delay to allow the download to initiate
-            setTimeout(() => {
-              document.body.removeChild(link);
-              console.log("Processed download:", url);
-            }, 12000); // 12 seconds delay to ensure the download has started
-            
-            console.log("Initiated download:", url);
-          } catch (error) {
-            console.error("Error downloading:", url, error);
-            reject(error);
-          }
-        });
+        const response = await fetch(cleanUrl, { mode: 'cors' });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ${cleanUrl}`);
+        }
+
+        const blob = await response.blob();
+        const objectURL = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = objectURL;
+        link.download = cleanUrl.split('/').pop(); // Extract filename from URL
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(objectURL);
+        console.log("Downloaded:", cleanUrl);
+      } catch (error) {
+        console.error("Download error:", error);
+        toast.error(`Error downloading: ${url}`);
+      }
       };
-  
+
       // Download each file one after another
       for (const url of filteredData) {
         await downloadFile(url);
